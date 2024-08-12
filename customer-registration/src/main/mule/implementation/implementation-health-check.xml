@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<sub-flow name="implementation-health-check-main" doc:id="ace764b1-0cc6-47ad-820f-14fe5020568e" >
+		<flow-ref doc:name="Status Health Check" doc:id="bf0f5e6a-cb44-4851-9377-8a020ba00ef2" name="implementation-health-check-dataBase" target="statusDataBase"/>
+		<ee:transform doc:name="Transform Message" doc:id="92797a66-b525-474e-82a4-cb6686c1e95b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	api_rest: {
+		name: "API Customer Registration",
+		status: "OK"
+	},
+	data_base: {
+		name: "PostgreSQL Heroku",
+		status: vars.statusDataBase
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
+	<sub-flow name="implementation-health-check-dataBase" doc:id="e0aca810-4263-4cf2-bbd6-290c1004b03d" >
+		<try doc:name="Try" doc:id="6e6cad33-e6c9-4986-8b1c-77a8575bfca1" >
+			<db:select doc:name="Select" doc:id="619e773c-fe2d-40bf-8248-c67b4558ac0c" config-ref="Database_Config">
+				<db:sql ><![CDATA[Select 0]]></db:sql>
+			</db:select>
+			<set-payload value="OK" doc:name="Status OK" doc:id="6f9581fe-7f79-4542-87e0-345cea386a28" />
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="092f8536-4863-4f24-84f2-d9167c8e9b86" >
+					<set-payload value='#["NOK": error.description as String ++ error.errorMessage as String]' doc:name="Status NOK" doc:id="80b6c432-7075-4c33-bc2b-59c2bdbcb03e" />
+				</on-error-continue>
+			</error-handler>
+		</try>
+	</sub-flow>
+</mule>

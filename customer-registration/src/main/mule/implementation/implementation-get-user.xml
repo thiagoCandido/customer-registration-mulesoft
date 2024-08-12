@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<sub-flow name="implementation-get-user-main" doc:id="f2b76d46-7c06-4e02-b589-a6f08ba71cd3" >
+		<flow-ref doc:name="Get User Data Base" doc:id="bede2212-cb9d-48ce-aa9d-7c35b23103f5" name="implementation-get-user-dataBase"/>
+	</sub-flow>
+	<sub-flow name="implementation-get-user-dataBase" doc:id="9cdaf325-0890-46a4-a955-3c43f9726487" >
+		<db:select doc:name="Select" doc:id="9b729ab4-b1fc-45f9-8c32-d11abf372e19" config-ref="Database_Config">
+			<db:sql ><![CDATA[select 
+	   c.id_client,
+	   c.name,
+       c.lastname,
+	   a.zip_code,
+	   a.city,
+	   a.uf,
+	   a.street,
+	   p.phone_number
+from client c,
+     address a,
+	 phone p 
+where c.id_client = a.id_client 
+  and c.id_client = p.id_client
+  and c.id_client = :pIdClient]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	pIdClient: vars.id
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="615448b3-2043-4245-8112-0154f271551d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	name: payload[0].name,
+	surName: payload[0].lastname,
+	phones: payload.phone_number map (
+		{
+			coreArea: $[0 to 1],
+			phoneNumber: $[2 to (sizeOf($) -1)],
+		}
+	),
+	address: {
+		zipCode: payload[0].zip_code,
+		city: payload[0].city,
+		state: payload[0].uf,
+		nameAddress: payload[0].street
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
+</mule>
